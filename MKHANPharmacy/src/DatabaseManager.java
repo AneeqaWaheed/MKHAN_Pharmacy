@@ -18,6 +18,7 @@ public class DatabaseManager {
             System.out.println("Connection established successfully");
 
         } catch (SQLException se) {
+            
             se.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
