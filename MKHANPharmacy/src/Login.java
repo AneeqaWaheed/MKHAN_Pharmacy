@@ -3,8 +3,15 @@ import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class Login extends JFrame {
+
+    private Connection conn;
 
     public Login() {
         setTitle("Login Page");
@@ -45,7 +52,22 @@ public class Login extends JFrame {
         loginButton.setBorderPainted(false);
         loginButton.setFocusPainted(false);
         loginPanel.add(loginButton);
-        loginPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Add vertical space
+        loginPanel.add(Box.createRigidArea(new Dimension(0, 10))); 
+        JLabel messageLabel = new JLabel("");
+        loginPanel.add(messageLabel);
+        loginButton.addActionListener(e -> {
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+
+            if (authenticate(username, password)) {
+                messageLabel.setText("Login successful");
+                ProductListPage productListPage = new ProductListPage();
+                productListPage.setVisible(true);
+            } else {
+                messageLabel.setText("Incorrect username or password");
+            }
+        });
+        
 
         JLabel signupLabel = new JLabel("Don't have an account?");
         JTextArea signupLink = new JTextArea("Signup Now");
@@ -70,13 +92,46 @@ public class Login extends JFrame {
         add(loginPanel, BorderLayout.CENTER);
 
         setVisible(true);
+        connectToDatabase();
+    }
+
+    private void connectToDatabase() {
+        String url = "jdbc:mysql://localhost:3306/mkhan_pharmacy";
+        String username = "root";
+        String password = "";
+
+        try {
+            conn = DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Failed to connect to database");
+        }
+    }
+
+    private boolean authenticate(String username, String password) {
+        if (conn == null) {
+            return false;
+        }
+
+        String sql = "SELECT * FROM `users` WHERE `First Name`=? AND `Password`=?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next(); // If there is a match, rs.next() will return true
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Database error: " + e.getMessage());
+            return false;
+        }
     }
 
     private void openSignupPage() {
-        Signup Signup = new Signup(); // Assuming your signup page class is named Signup
-        Signup.setVisible(true);
+        Signup signupPage = new Signup(); // Assuming your signup page class is named Signup
+        signupPage.setVisible(true);
         dispose(); // Close the login page if needed
     }
+    
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Login::new);

@@ -1,6 +1,12 @@
 import javax.swing.*;
 import java.awt.*;
 import javax.swing.border.LineBorder;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
 public class Signup extends JFrame {
 
@@ -108,13 +114,58 @@ public class Signup extends JFrame {
         signupPanel.add(signupButton);
         signupPanel.add(Box.createRigidArea(new Dimension(0, 20))); // Add vertical space
 
+        signupButton.addActionListener(e -> {
+            try (Connection conn = getConnection()) {
+                String sql = "INSERT INTO `users` (`First Name`, `Middle Name`, `Last Name`, `Date of Birth`, `Contact Number`, `Email`, `Password`, `Full Address`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, ((JTextField) fields[0]).getText()); // First Name
+                    pstmt.setString(2, ((JTextField) fields[1]).getText()); // Middle Name
+                    pstmt.setString(3, ((JTextField) fields[2]).getText()); // Last Name
+
+                    // Parse and set Date of Birth
+                    String dobInput = ((JTextField) fields[3]).getText();
+                    try {
+                        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+                        java.util.Date parsedDate = dateFormat.parse(dobInput);
+                        java.sql.Date dob = new java.sql.Date(parsedDate.getTime());
+                        pstmt.setDate(4, dob);
+                    } catch (ParseException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(this, "Invalid Date of Birth format. Please use dd/MM/yyyy.");
+                        return; // Exit the ActionListener
+                    }
+
+                    pstmt.setString(5, ((JTextField) fields[4]).getText()); // Contact Number
+                    pstmt.setString(6, ((JTextField) fields[5]).getText()); // Email
+                    pstmt.setString(7, ((JPasswordField) fields[6]).getText()); // Password
+                    pstmt.setString(8, ((JTextField) fields[7]).getText()); // Full Address
+
+                    int rowsInserted = pstmt.executeUpdate();
+                    if (rowsInserted > 0) {
+                        JOptionPane.showMessageDialog(this, "User registered successfully");
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to register user");
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage());
+            }
+        });
+
         add(signupPanel, BorderLayout.CENTER);
 
         setVisible(true);
     }
 
+    private Connection getConnection() throws SQLException {
+        String url = "jdbc:mysql://localhost:3306/mkhan_pharmacy";
+        String username = "root";
+        String password = "";
+        return DriverManager.getConnection(url, username, password);
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new Signup());
+        SwingUtilities.invokeLater(Signup::new);
     }
 }
-
